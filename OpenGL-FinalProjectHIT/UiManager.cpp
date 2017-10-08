@@ -14,7 +14,7 @@ UiManager::~UiManager()
 void UiManager::RenderBegin()
 {
 	
-	ImGui_ImplGlfwGL3_NewFrame();
+	ImGui_ImplGlfwGL3_NewFrame(*ShowMouse);
 
 }
 
@@ -92,18 +92,30 @@ void UiManager::RenderSet()
 		}
 		if (ImGui::TreeNode("Global"))
 		{
-			ImGui::ColorEdit3("clear color", (float*)Lights->ClearColor);
+			ImGui::ColorEdit3("clear color", (float*)&Lights->ClearColor);
 			ImGui::TreePop();
 		}
 		if (ImGui::TreeNode("Directional Light"))
 		{
 			ImGui::Checkbox("Enabled", &Lights->LightDirectionalLight->enabled);
-			ImGui::SliderFloat("X", &Lights->LightDirectionalLight->direction.x, -20.0f, 20.0f, "%.4f", 3.0f);
-			ImGui::SliderFloat("Y", &Lights->LightDirectionalLight->direction.y, -20.0f, 20.0f, "%.4f", 3.0f);
-			ImGui::SliderFloat("Z", &Lights->LightDirectionalLight->direction.z, -20.0f, 20.0f, "%.4f", 3.0f);
+			
 			ImGui::ColorEdit3("Ambient", (float*)&Lights->LightDirectionalLight->ambient);
 			ImGui::ColorEdit3("Diffuse", (float*)&Lights->LightDirectionalLight->diffuse);
 			ImGui::ColorEdit3("Specular", (float*)&Lights->LightDirectionalLight->specular);
+			if (ImGui::TreeNode("Direction"))
+			{
+				ImGui::SliderFloat("X", &Lights->LightDirectionalLight->direction.x, -20.0f, 20.0f, "%.4f", 3.0f);
+				ImGui::SliderFloat("Y", &Lights->LightDirectionalLight->direction.y, -20.0f, 20.0f, "%.4f", 3.0f);
+				ImGui::SliderFloat("Z", &Lights->LightDirectionalLight->direction.z, -20.0f, 20.0f, "%.4f", 3.0f);
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Position - For Shadow Mapping"))
+			{
+				ImGui::DragFloat("X", &Lights->LightDirectionalLight->position.x, 0.005f);
+				ImGui::DragFloat("Y", &Lights->LightDirectionalLight->position.y, 0.005f);
+				ImGui::DragFloat("Z", &Lights->LightDirectionalLight->position.z, 0.005f);
+				ImGui::TreePop();
+			}
 			ImGui::TreePop();
 		}
 		if (ImGui::TreeNode("Point Lights"))
@@ -142,6 +154,16 @@ void UiManager::RenderSet()
 			//ImGui::SliderFloat("Quadratic", &LightSpotLight->quadratic, -1.0f, 1.0f, "%.4f", 3.0f);
 			//ImGui::SliderFloat("CutOff", &LightSpotLight->cutOff, 0.0f, 1.0f, "%.4f", 3.0f);
 			//ImGui::SliderFloat("OuterCutOff", &LightSpotLight->outerCutOff, 0.0f, 1.0f, "%.4f", 3.0f);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Shadows - Directional Light"))
+		{
+			ImGui::Checkbox("Enabled", &Lights->EnableShadows);
+			ImGui::Checkbox("Show Shadow Map", &Lights->EnableShadowMapDebug);
+			ImGui::DragFloat("Region", &Lights->ShadowRegion, 0.005f);
+			ImGui::DragFloat("Near Plane", &Lights->NearShadowPlane, 0.005f);
+			ImGui::DragFloat("Far Plane", &Lights->FarShadowPlane, 0.005f);
 			ImGui::TreePop();
 		}
 

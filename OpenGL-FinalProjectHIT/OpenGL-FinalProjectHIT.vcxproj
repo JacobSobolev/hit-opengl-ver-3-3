@@ -171,29 +171,14 @@
     <Image Include="container.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shader1.fs" />
-    <None Include="shader1.vs" />
-    <None Include="shader2.fs" />
-    <None Include="shader2.vs" />
-    <None Include="shader_floor.fs" />
-    <None Include="shader_floor.vs" />
-    <None Include="shader_model.fs" />
-    <None Include="shader_model.vs" />
-    <None Include="shader_box.fs" />
-    <None Include="shader_box.vs" />
+    <None Include="shader_object.fs" />
+    <None Include="shader_object.vs" />
+    <None Include="shader_depth.fs" />
     <None Include="shader_depth_debug.fs" />
     <None Include="shader_depth_debug.vs" />
     <None Include="shader_lamp.fs" />
     <None Include="shader_lamp.vs" />
-    <None Include="shader_main.fs" />
-    <None Include="shader_main.vs" />
-    <None Include="shader_depth.fs" />
     <None Include="shader_depth.vs" />
-    <None Include="shader_point_shadow.fs" />
-    <None Include="shader_point_shadow.vs" />
-    <None Include="shader_point_shadow_depth.fs" />
-    <None Include="shader_point_shadow_depth.gs" />
-    <None Include="shader_point_shadow_depth.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,14 +9,19 @@ RenderObject::RenderObject(Camera* camera)
 
 RenderObject::~RenderObject()
 {
-
+	delete(_objectShader);
+	for each (Object* obj in *ObjectsVec)
+	{
+		delete(obj);
+	}
+	delete(ObjectsVec);
 }
 
 void RenderObject::createShader()
 {
 	// build and compile our shader zprogram
 	// ------------------------------------
-	_objectShader = new Shader("shader2.vs", "shader2.fs");
+	_objectShader = new Shader("shader_object.vs", "shader_object.fs");
 
 	// shader configuration
 	// --------------------
@@ -29,23 +34,25 @@ void RenderObject::createShader()
 }
 
 
-void RenderObject::Render( glm::mat4 projection, glm::mat4 view, glm::mat4 lightSpaceMatrix)
+void RenderObject::render()
 {
 	// be sure to activate shader when setting uniforms/drawing objects
 	_objectShader->use();
 
 	// view/projection transformations
-	_objectShader->setMat4("projection", projection);
-	_objectShader->setMat4("view", view);
+	_objectShader->setMat4("projection", _camera->GetProjectionMatrix());
+	_objectShader->setMat4("view", _camera->GetViewMatrix());
 
 	_objectShader->setVec3("viewPos", _camera->Position);
 
-	_objectShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-
+	//sending light info to the shader
 	setDirectionalLight();
 	setPointLights();
 	setSpotLight();
+
+	//sending shadow info to the shader
+	_objectShader->setMat4("lightSpaceMatrix", Lights->GetLightSpaceMatrix());
+	_objectShader->setBool("enableShadows", Lights->EnableShadows);
 
 
 }

@@ -13,6 +13,8 @@
 #include "SpotLight.h"
 #include "model.h"
 
+
+
 class LightManager
 {
 private:
@@ -39,26 +41,31 @@ private:
 	void resetPointLights();
 	void initSpotLight();
 public:
-	ImVec4 *ClearColor;
+	ImVec4 ClearColor;
 	DirectionalLight* LightDirectionalLight;
 	vector<PointLight*>* LightPointLights;
 	SpotLight* LightSpotLight;
 	int LightPresets;
 
-	
-
 	unsigned int DepthMap;
 	Shader* SimpleDepthShader;
+	bool EnableShadows;
+	bool EnableShadowMapDebug;
+
+	float NearShadowPlane;
+	float FarShadowPlane;
+	float ShadowRegion;
 
 	LightManager(Camera *camera);
 	~LightManager();
 	void InitLights();
 	void UpdateSpotLight();
-	void RenderLights(glm::mat4 projection, glm::mat4 view);
+	void RenderLights();
 	void SetThemePreset(int presetIndex);
-	void RenderShadwoMapToTextureBegin(glm::mat4 lightSpaceMatrix);
+	void RenderShadwoMapToTextureBegin();
 	void RenderShadwoMapToTextureEnd();
-	void RenderShadowMappDebug(float nearPlane, float farPlane);
+	void RenderShadowMappDebug();
+	glm::mat4 GetLightSpaceMatrix();
 };
 
 #endif

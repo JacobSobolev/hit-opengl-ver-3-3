@@ -11,54 +11,36 @@
 #include "imgur/imgui.h"
 #include "imgui_impl_glfw_gl3.h"
 
-#include "textureLoader.h"
-#include "shader.h"
 #include "camera.h"
-#include "model.h"
 #include "UiManager.h"
 #include "CubeManager.h"
 #include "LightManager.h"
-#include "SpotLight.h"
 #include "FloorManager.h"
-#include "object.h"
-#include "DirectionalLight.h"
-#include "ShadowMappingManager.h"
 
-
-
-#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
-bool shadows = true;
-bool shadowsKeyPressed = false;
+const unsigned int screenWidth = 1280;
+const unsigned int ScreenHeight = 720;
 
 // camera
-Camera *camera = new Camera(glm::vec3(0.0f, 1.0f, 3.0f));
-float lastX = (float)SCR_WIDTH / 2.0;
-float lastY = (float)SCR_HEIGHT / 2.0;
+Camera *camera = new Camera(screenWidth, ScreenHeight);
+
+// controls
+float lastX = (float)screenWidth / 2.0;
+float lastY = (float)ScreenHeight / 2.0;
 bool firstMouse = true;
+bool showMouse = true;
+bool showMousePressed = false;
 
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 ImGuiIO& io = ImGui::GetIO();
-ImVec4 clearColor;
-int textureItem;
-
-//lights
-DirectionalLight directionalLight;
-vector<PointLight*> *pointLightsVec = new vector<PointLight*>();
-SpotLight spotLight;
-
-
 
 int main()
 {
@@ -75,22 +57,20 @@ int main()
 
 	// glfw window creation
 	// --------------------
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(screenWidth, ScreenHeight, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		return -1;
 	}
-	//glfwSwapInterval(1); // Enable vsync
 
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	//glfwSetCursorPosCallback(window, mouse_callback);
-	//glfwSetScrollCallback(window, scroll_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
 
 	// tell GLFW to capture our mouse
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// glad: load all OpenGL function pointers
 	// ---------------------------------------
@@ -106,32 +86,31 @@ int main()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_CULL_FACE);
-
 	
+	//camera init
+	camera->Position = glm::vec3(3.0f, 5.0f, 8.0f);
+	camera->Front = glm::vec3(-0.5f, -0.6f, -1.5f);
 
+	//lights
 	LightManager lights(camera);
-	lights.ClearColor = &clearColor;
-	lights.LightDirectionalLight = &directionalLight;
-	lights.LightPointLights = pointLightsVec;
-	lights.LightSpotLight = &spotLight;
 	lights.InitLights();
 
-
+	//cubes
 	CubeManager cubes(camera);
 	cubes.Lights = &lights;
 
+	//floor
 	FloorManager floor(camera);
 	floor.Lights = &lights;
 
+	//ui
 	UiManager ui(window);
 	ui.Camera = camera;
 	ui.Cubes = &cubes;
 	ui.Lights = &lights;
 	ui.Floor = &floor;
-
-	//camera init
-	camera->Position = glm::vec3(3.0f, 5.0f, 8.0f);
-	camera->Front = glm::vec3(-0.5f, -0.6f, -1.5f);
+	ui.ShowMouse = &showMouse;
+	
 
 	// render loop
 	// -----------
@@ -143,68 +122,46 @@ int main()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		//ui
+		ui.RenderBegin();
+
 		// input
-		// -----
 		processInput(window);
 
-		// projection and view
-		glm::mat4 projection = glm::perspective(glm::radians(camera->Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		glm::mat4 view = camera->GetViewMatrix();
-		//  render depth of scene to texture (from light's perspective)
-		// --------------------------------------------------------------
-		glm::mat4 lightProjection, lightView;
-		glm::mat4 lightSpaceMatrix;
-		float near_plane = 1.0f, far_plane = 20.0f;
-		//lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene
-		float region = 20.0f;
-		lightProjection = glm::ortho(-region, region, -region, region, near_plane, far_plane);
-		lightView = glm::lookAt(lights.LightDirectionalLight->position, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-		lightSpaceMatrix = lightProjection * lightView;
-
-
-		ui.RenderBegin();
-		// render
-		// ------
-		glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
+		// clear screen
+		glClearColor(lights.ClearColor.x, lights.ClearColor.y, lights.ClearColor.z, lights.ClearColor.w);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//render shadow map
-		lights.RenderShadwoMapToTextureBegin(lightSpaceMatrix);
+		lights.RenderShadwoMapToTextureBegin();
 
 		floor.RenderFloorForShadowMap();
-		cubes.RenderCubesForShadowMap(deltaTime);
+		cubes.RenderCubesForShadowMap();
 
 		lights.RenderShadwoMapToTextureEnd();
 
-		//render scene with shadow map
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		//clear screen
+		glViewport(0, 0, screenWidth, ScreenHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		
-
+		//ui
 		ui.RenderSet();
 
-		lights.RenderLights(projection, view);
-		cubes.RenderCubes(deltaTime, projection, view, lightSpaceMatrix);
-		floor.RenderFloor(projection, view, lightSpaceMatrix);
+		//render scene with shadow map
+		lights.RenderLights();
+		cubes.RenderCubes(deltaTime);
+		floor.RenderFloor();
 		
-		//lights.RenderShadowMappDebug(near_plane, far_plane);
-
+		//render shadow map
+		lights.RenderShadowMappDebug();
+		//ui
 		ui.RenderEnd();
-		
-		
 		
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
-	// optional: de-allocate all resources once they've outlived their purpose:
-	// ------------------------------------------------------------------------
-	//glDeleteVertexArrays(1, &cubeVAO);
-	//glDeleteVertexArrays(1, &lightVAO);
-	//glDeleteBuffers(1, &VBO);
 
 	// glfw: terminate, clearing all previously allocated GLFW resources.
 	// ------------------------------------------------------------------
@@ -218,18 +175,34 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
-	
-
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);	
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->ProcessKeyboard(FORWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->ProcessKeyboard(BACKWARD, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->ProcessKeyboard(LEFT, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->ProcessKeyboard(RIGHT, deltaTime);
+
+	if (!showMouse) {
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			camera->ProcessKeyboard(FORWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			camera->ProcessKeyboard(BACKWARD, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			camera->ProcessKeyboard(LEFT, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			camera->ProcessKeyboard(RIGHT, deltaTime);
+	}
+	
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !showMousePressed)
+	{
+		showMouse = !showMouse;
+		showMousePressed= true;
+		glfwSetInputMode(window, GLFW_CURSOR, showMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+	}
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+	{
+		showMousePressed = false;
+	}
+
+	if (showMouse && io.MouseWheel) {
+		camera->ProcessMouseScroll(io.MouseWheel);
+	}
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -245,25 +218,21 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (firstMouse)
-	{
+	if (!showMouse) {
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+
+		float xoffset = xpos - lastX;
+		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
 		lastX = xpos;
 		lastY = ypos;
-		firstMouse = false;
+
+		camera->ProcessMouseMovement(xoffset, yoffset);
 	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-	lastX = xpos;
-	lastY = ypos;
-
-	camera->ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	camera->ProcessMouseScroll(yoffset);
-}

@@ -2,10 +2,19 @@
 
 LightManager::LightManager(Camera *camera)
 {
+	ShadowRegion = 16.0f;
+	NearShadowPlane = 1.0f;
+	FarShadowPlane = 25.0f;
+
+	LightDirectionalLight = new DirectionalLight;
+	LightPointLights = new vector<PointLight*>();
+	LightSpotLight = new SpotLight;
 	_lastPreset = 0;
 	LightPresets = 0;
 	_camera = camera;
 	_lampModel = new Model("bulb/bulb.obj");
+	EnableShadowMapDebug = false;
+	EnableShadows = true;
 	createShaders();
 	createDepthMap();
 	configureShaders();
@@ -14,6 +23,10 @@ LightManager::LightManager(Camera *camera)
 
 LightManager::~LightManager()
 {
+	glDeleteVertexArrays(1, &_quadVBO);
+	glDeleteBuffers(1, &_quadVAO);
+	delete(_lampModel);
+	delete(_lampShader);
 }
 
 void LightManager::InitLights()
@@ -85,7 +98,7 @@ void LightManager::configureShaders()
 
 void LightManager::initClearColor()
 {
-	*ClearColor = ImColor(25, 25, 25);
+	ClearColor = ImColor(25, 25, 25);
 }
 
 void LightManager::initDirectionalLight()
@@ -97,7 +110,7 @@ void LightManager::initDirectionalLight()
 		LightDirectionalLight->ambient = glm::vec3(0.05f, 0.05f, 0.05f);
 		LightDirectionalLight->diffuse = glm::vec3(0.15f, 0.15f, 0.15f);
 		LightDirectionalLight->specular = glm::vec3(0.15f, 0.15f, 0.15f);
-		LightDirectionalLight->position = glm::vec3(-2.0f, 4.0f, -1.0f);
+		LightDirectionalLight->position = glm::vec3(-2.75f, 10.0f, 0.0f);
 	}
 }
 
@@ -183,20 +196,17 @@ void LightManager::UpdateSpotLight()
 }
 
 
-void LightManager::RenderLights(glm::mat4 projection, glm::mat4 view)
+void LightManager::RenderLights()
 {
-
 	//updates
-
 	UpdateSpotLight();
 	SetThemePreset(LightPresets);
 
 	glm::mat4 model;
-
 	// draw the lamp object(s)
 	_lampShader->use();
-	_lampShader->setMat4("projection", projection);
-	_lampShader->setMat4("view", view);
+	_lampShader->setMat4("projection", _camera->GetProjectionMatrix());
+	_lampShader->setMat4("view", _camera->GetViewMatrix());
 
 	// we now draw as many light bulbs as we have point lights.
 	for (unsigned int i = 0; i < LightPointLights->size(); i++)
@@ -228,7 +238,7 @@ void LightManager::SetThemePreset(int presetIndex)
 			initSpotLight();
 			break;
 		case 1:
-			*ClearColor = ImVec4(0.75f,0.52f,0.3f,1.0f);
+			ClearColor = ImVec4(0.75f,0.52f,0.3f,1.0f);
 			//directional light
 			LightDirectionalLight->direction = glm::vec3(-0.2f, -1.0f, -0.3f);
 			LightDirectionalLight->ambient = glm::vec3(0.3f, 0.24f, 0.14f);
@@ -265,7 +275,7 @@ void LightManager::SetThemePreset(int presetIndex)
 			
 			break;
 		case 2:
-			*ClearColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+			ClearColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 			//directional light
 			LightDirectionalLight->direction = glm::vec3(-0.2f, -1.0f, -0.3f);
 			LightDirectionalLight->ambient = glm::vec3(0.05f, 0.05f, 0.1f);
@@ -301,7 +311,7 @@ void LightManager::SetThemePreset(int presetIndex)
 			LightSpotLight->outerCutOff = glm::cos(glm::radians(15.0f));
 			break;
 		case 3:
-			*ClearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+			ClearColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 			//directional light
 			LightDirectionalLight->direction = glm::vec3(-0.2f, -1.0f, -0.3f);
 			LightDirectionalLight->ambient = glm::vec3(0.0f, 0.00f, 0.0f);
@@ -337,7 +347,7 @@ void LightManager::SetThemePreset(int presetIndex)
 			LightSpotLight->outerCutOff = glm::cos(glm::radians(15.0f));
 			break;
 		case 4:
-			*ClearColor = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
+			ClearColor = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);
 			//directional light
 			LightDirectionalLight->direction = glm::vec3(-0.2f, -1.0f, -0.3f);
 			LightDirectionalLight->ambient = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -379,12 +389,11 @@ void LightManager::SetThemePreset(int presetIndex)
 	}
 }
 
-void LightManager::RenderShadwoMapToTextureBegin(glm::mat4 lightSpaceMatrix)
+void LightManager::RenderShadwoMapToTextureBegin()
 {
 	// render scene from light's point of view
-	
 	SimpleDepthShader->use();
-	SimpleDepthShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+	SimpleDepthShader->setMat4("lightSpaceMatrix", GetLightSpaceMatrix());
 
 	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, _depthMapFBO);
@@ -396,16 +405,29 @@ void LightManager::RenderShadwoMapToTextureEnd()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void LightManager::RenderShadowMappDebug(float nearPlane, float farPlane)
+void LightManager::RenderShadowMappDebug()
 {
-	_debugDepthQuad->use();
-	_debugDepthQuad->setFloat("near_plane", nearPlane);
-	_debugDepthQuad->setFloat("far_plane", farPlane);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, DepthMap);
+	if (EnableShadowMapDebug) {
+		_debugDepthQuad->use();
+		_debugDepthQuad->setFloat("near_plane", NearShadowPlane);
+		_debugDepthQuad->setFloat("far_plane", FarShadowPlane);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, DepthMap);
 
-	glBindVertexArray(_quadVAO);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
+		glBindVertexArray(_quadVAO);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		glBindVertexArray(0);
+	}
+}
+
+glm::mat4 LightManager::GetLightSpaceMatrix()
+{
+	glm::mat4 lightProjection, lightView;
+	glm::mat4 lightSpaceMatrix;
+	//lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene
+	lightProjection = glm::ortho(-ShadowRegion, ShadowRegion, -ShadowRegion, ShadowRegion, NearShadowPlane, FarShadowPlane);
+	lightView = glm::lookAt(LightDirectionalLight->position, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+	lightSpaceMatrix = lightProjection * lightView;
+	return lightSpaceMatrix;
 }
 

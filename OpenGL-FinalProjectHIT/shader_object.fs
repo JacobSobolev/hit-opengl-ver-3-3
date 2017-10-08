@@ -61,6 +61,7 @@ uniform Material material;
 uniform bool blinn;
 
 uniform sampler2D shadowMap;
+uniform bool enableShadows;
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -94,7 +95,7 @@ void main()
 // calculates the color when using a directional light.
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
-	float shadow = ShadowCalculation(fs_in.FragPosLightSpace);  
+	float shadow = enableShadows ? ShadowCalculation(fs_in.FragPosLightSpace) : 0.0;  
     vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);

@@ -146,9 +146,9 @@ void CubeManager::initCubes()
 	}
 }
 
-void CubeManager::RenderCubes(float dt, glm::mat4 projection, glm::mat4 view, glm::mat4 lightSpaceMatrix)
+void CubeManager::RenderCubes(float dt)
 {
-	RenderObject::Render(projection, view, lightSpaceMatrix);
+	RenderObject::render();
 
 	SetTextureToAll(TextureItem);
 
@@ -196,7 +196,7 @@ void CubeManager::RenderCubes(float dt, glm::mat4 projection, glm::mat4 view, gl
 	glBindVertexArray(0);
 }
 
-void CubeManager::RenderCubesForShadowMap(float dt)
+void CubeManager::RenderCubesForShadowMap()
 {
 	Lights->SimpleDepthShader->use();
 	glBindVertexArray(_VAO);
@@ -214,13 +214,6 @@ void CubeManager::RenderCubesForShadowMap(float dt)
 			model = glm::translate(model, ObjectsVec->at(i)->position);
 			model = glm::scale(model, ObjectsVec->at(i)->scale);
 			model = glm::rotate(model, ObjectsVec->at(i)->rotationAngle, ObjectsVec->at(i)->rotation);
-
-
-			if (AnimateCubes && ObjectsVec->at(i)->animationEnabled)
-			{
-				ObjectsVec->at(i)->rotationAngle += dt * glm::radians(360.0f) * 0.5;
-			}
-
 
 			Lights->SimpleDepthShader->setMat4("model", model);
 

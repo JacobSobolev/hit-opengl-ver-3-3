@@ -55,7 +55,7 @@ void FloorManager::initFloor()
 	glm::mat4 model;
 	float angle = 0;
 	newObject->positionInit = glm::vec3(0,-1.0f,0);
-	newObject->scaleInit = glm::vec3(1);
+	newObject->scaleInit = glm::vec3(2.0f,1.0f,2.0f);
 	newObject->rotationInit = glm::vec3(1.0f, 0.3f, 0.5f);
 	newObject->rotationAngleInit = glm::radians(angle);
 
@@ -82,9 +82,9 @@ FloorManager::~FloorManager()
 	glDeleteBuffers(1, &_VAO);
 }
 
-void FloorManager::RenderFloor(glm::mat4 projection, glm::mat4 view, glm::mat4 lightSpaceMatrix)
+void FloorManager::RenderFloor()
 {
-	RenderObject::Render(projection, view, lightSpaceMatrix);
+	RenderObject::render();
 
 	_objectShader->use();
 

@@ -43,12 +43,10 @@ public:
 
 	CubeManager(Camera* camera);
 	~CubeManager();
-	void RenderCubes(float dt,glm::mat4 projection, glm::mat4 view, glm::mat4 lightSpaceMatrix);
-	void RenderCubesForShadowMap(float dt);
+	void RenderCubes(float dt);
+	void RenderCubesForShadowMap();
 	void SetTextureToAll(int textureIndex);
 	void SetTextureToCube(int textureIndex,int cubeIndex);
-	
-	
 };
 
 #endif

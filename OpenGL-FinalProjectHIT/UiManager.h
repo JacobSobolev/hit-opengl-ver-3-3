@@ -25,6 +25,8 @@ public:
 	UiManager(GLFWwindow* window);
 	~UiManager();
 
+	bool* ShowMouse;
+
 	Camera* Camera;
 	LightManager* Lights;
 	CubeManager* Cubes;
