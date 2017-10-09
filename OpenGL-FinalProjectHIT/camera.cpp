@@ -3,6 +3,10 @@
 // Constructor with vectors
 Camera::Camera(unsigned int screenWdith, unsigned int screenHeight, glm::vec3 position , glm::vec3 up , float yaw , float pitch ) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 {
+	PrespectiveMode = true;
+	NearPlane = 0.1f;
+	FarPlane = 100.0f;
+	OrthoRegion = 10.0f;
 	_screenWidth = screenWdith;
 	_screenHeight = screenHeight;
 	Position = position;
@@ -14,6 +18,10 @@ Camera::Camera(unsigned int screenWdith, unsigned int screenHeight, glm::vec3 po
 // Constructor with scalar values
 Camera::Camera(unsigned int screenWdith, unsigned int screenHeight, float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
 {
+	PrespectiveMode = true;
+	NearPlane = 0.1f;
+	FarPlane = 100.0f;
+	OrthoRegion = 10.0f;
 	_screenWidth = screenWdith;
 	_screenHeight = screenHeight;
 	Position = glm::vec3(posX, posY, posZ);
@@ -31,8 +39,16 @@ glm::mat4 Camera::GetViewMatrix()
 
 glm::mat4 Camera::GetProjectionMatrix()
 {
-
-	return glm::perspective(glm::radians(Zoom), (float)_screenWidth / (float)_screenHeight, NEAR_PLANE, FAR_PLANE);
+	glm::mat4 returnMatrix;
+	if (PrespectiveMode) {
+		returnMatrix = glm::perspective(glm::radians(Zoom), (float)_screenWidth / (float)_screenHeight, NearPlane, FarPlane);
+	}
+	else {
+		returnMatrix = glm::ortho(-OrthoRegion, OrthoRegion, -OrthoRegion, OrthoRegion, NearPlane, FarPlane);
+	}
+	
+	
+	return returnMatrix;
 }
 
 // Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -74,6 +90,12 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
 // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 void Camera::ProcessMouseScroll(float yoffset)
 {
+	if (OrthoRegion >= 0.125f) {
+		OrthoRegion -= yoffset * 0.125f;
+	}
+	if (OrthoRegion < 0.125f) {
+		OrthoRegion = 0.125f;
+	}
 	if (Zoom >= 1.0f && Zoom <= 45.0f)
 		Zoom -= yoffset;
 	if (Zoom <= 1.0f)

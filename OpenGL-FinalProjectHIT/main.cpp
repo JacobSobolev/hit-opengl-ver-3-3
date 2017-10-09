@@ -133,16 +133,17 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		//render shadow map
-		lights.RenderShadwoMapToTextureBegin();
+		if (lights.EnableShadows) {
+			lights.RenderShadwoMapToTextureBegin();
 
-		floor.RenderFloorForShadowMap();
-		cubes.RenderCubesForShadowMap();
+			floor.RenderFloorForShadowMap();
+			cubes.RenderCubesForShadowMap();
 
-		lights.RenderShadwoMapToTextureEnd();
-
-		//clear screen
-		glViewport(0, 0, screenWidth, ScreenHeight);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			lights.RenderShadwoMapToTextureEnd();
+			//clear screen
+			glViewport(0, 0, screenWidth, ScreenHeight);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		}
 
 		//ui
 		ui.RenderSet();
@@ -200,7 +201,7 @@ void processInput(GLFWwindow *window)
 		showMousePressed = false;
 	}
 
-	if (showMouse && io.MouseWheel) {
+	if (!showMouse && io.MouseWheel) {
 		camera->ProcessMouseScroll(io.MouseWheel);
 	}
 }

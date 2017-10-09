@@ -22,8 +22,7 @@ const float PITCH = 0.0f;
 const float SPEED = 2.5f;
 const float SENSITIVTY = 0.1f;
 const float ZOOM = 45.0f;
-const float NEAR_PLANE = 0.1f;
-const float FAR_PLANE = 100.0f;
+
 
 // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and Matrices for use in OpenGL
 class Camera
@@ -45,6 +44,10 @@ public:
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
+	float NearPlane;
+	float FarPlane;
+	bool PrespectiveMode;
+	float OrthoRegion;
 
 	// Constructor with vectors
 	Camera(unsigned int screenWdith, unsigned int screenHeight, glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW, float pitch = PITCH);

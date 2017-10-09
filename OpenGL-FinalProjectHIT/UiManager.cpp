@@ -22,7 +22,7 @@ void UiManager::RenderSet()
 {
 	static bool no_titlebar = false;
 	static bool no_border = true;
-	static bool no_resize = false;
+	static bool no_resize = true;
 	static bool no_move = false;
 	static bool no_scrollbar = false;
 	static bool no_collapse = false;
@@ -54,6 +54,9 @@ void UiManager::RenderSet()
 
 	if (ImGui::TreeNode("Camera"))
 	{
+		ImGui::Text("Toogle Free Camera Movement Press SpaceBar");
+		ImGui::Text("Use Mouse And W,S,A,D To move");
+		ImGui::Spacing();
 		if (ImGui::TreeNode("Position"))
 		{
 			ImGui::DragFloat("X", &Camera->Position.x, 0.005f);
@@ -80,6 +83,16 @@ void UiManager::RenderSet()
 			ImGui::DragFloat("", &Camera->Zoom, 0.05f);
 			ImGui::TreePop();
 		}
+		if (ImGui::TreeNode("Projection"))
+		{
+			ImGui::Checkbox("Prespective", &Camera->PrespectiveMode);
+			ImGui::DragFloat("Near Plane", &Camera->NearPlane, 0.005f);
+			ImGui::DragFloat("Far Plane", &Camera->FarPlane, 0.005f);
+			ImGui::DragFloat("Region", &Camera->OrthoRegion, 0.005f);
+			ImGui::TreePop();
+		}
+		
+
 
 		ImGui::TreePop();
 	}
